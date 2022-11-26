@@ -32,19 +32,24 @@ const promptSelect = async <T extends string>(
   }
 };
 
-const nextActions = ["play again", "exit"] as const;
+const nextActions = ["play again", "change game", "exit"] as const;
 type NextAction = typeof nextActions[number];
+
+abstract class Game {
+  abstract setting(): Promise<void>;
+  abstract play(): Promise<void>;
+  abstract end(): void;
+}
 
 const gameTitles = ["hit and blow", "janken"] as const;
 type GameTitle = typeof gameTitles[number];
 type GameStore = {
-  "hit and blow": HitAndBlow;
-  janken: Janken;
+  [key in GameTitle]: Game;
 };
 
 class GameProcedure {
   private currentGameTitle: GameTitle | "" = "";
-  private currentGame: HitAndBlow | Janken | null = null;
+  private currentGame: Game | null = null;
 
   constructor(private readonly gameStore: GameStore) {}
 
@@ -74,6 +79,9 @@ class GameProcedure {
     );
     if (action === "play again") {
       await this.play();
+    } else if (action === "change game") {
+      await this.select();
+      await this.play();
     } else if (action === "exit") {
       this.end();
     } else {
@@ -91,7 +99,7 @@ class GameProcedure {
 const modes = ["normal", "hard"] as const;
 type Mode = typeof modes[number];
 
-class HitAndBlow {
+class HitAndBlow implements Game {
   private readonly answerSource = [
     "0",
     "1",
@@ -203,7 +211,7 @@ class HitAndBlow {
 const jankenOptions = ["rock", "paper", "scissors"] as const;
 type JankenOption = typeof jankenOptions[number];
 
-class Janken {
+class Janken implements Game {
   private rounds = 0;
   private currentRound = 1;
   private result = {
